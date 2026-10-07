@@ -177,7 +177,8 @@ button:last-child {
 }
 
 #worldPanel h3,
-#avatarPanel h3 {
+#avatarPanel h3,
+#lobbyPanel h3 {
   margin: 0 0 10px;
   font-size: 1rem;
 }
@@ -195,6 +196,29 @@ button:last-child {
 .world-button.active {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   color: #0b1020;
+}
+
+#lobbyPanel {
+  position: absolute;
+  right: 320px;
+  top: 20px;
+  z-index: 12;
+  width: 180px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(8px);
+}
+
+#presenceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
 }
 
 #avatarPanel {
@@ -282,6 +306,14 @@ button:last-child {
     left: 12px;
     width: auto;
     bottom: 220px;
+  }
+
+  #lobbyPanel {
+    right: 12px;
+    left: 12px;
+    top: auto;
+    bottom: 320px;
+    width: auto;
   }
 
   #avatarPanel {

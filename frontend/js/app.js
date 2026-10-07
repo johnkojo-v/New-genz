@@ -18,6 +18,8 @@ const avatarForm = document.querySelector('#avatarForm');
 const skinToneSelect = document.querySelector('#skinTone');
 const outfitColorSelect = document.querySelector('#outfitColor');
 const avatarStyleSelect = document.querySelector('#avatarStyle');
+const avatarAccessorySelect = document.querySelector('#avatarAccessory');
+const presenceList = document.querySelector('#presenceList');
 
 let deferredPrompt = null;
 let currentUser = null;
@@ -27,11 +29,13 @@ let remoteAvatars = new Map();
 let lastMovementSentAt = 0;
 let worldData = [];
 let activeWorldId = 1;
+let accessoryMesh = null;
 
 const avatarConfig = {
   skin: 'light',
   outfit: 'blue',
-  style: 'classic'
+  style: 'classic',
+  accessory: 'none'
 };
 
 const SKIN_COLORS = {
@@ -54,6 +58,13 @@ const styleScale = {
   hero: 1.12,
   street: 0.94,
   royal: 1.08
+};
+
+const accessoryModels = {
+  none: null,
+  glasses: { width: 0.5, height: 0.12, y: 1.5 },
+  hat: { width: 0.7, height: 0.22, y: 1.95 },
+  visor: { width: 0.6, height: 0.12, y: 1.65 }
 };
 
 statusText.textContent = 'Initializing 3D world...';
@@ -121,6 +132,7 @@ function loadAvatarConfig() {
     skinToneSelect.value = avatarConfig.skin;
     outfitColorSelect.value = avatarConfig.outfit;
     avatarStyleSelect.value = avatarConfig.style;
+    avatarAccessorySelect.value = avatarConfig.accessory;
     applyAvatarStyle(avatarConfig);
   } catch (error) {
     applyAvatarStyle(avatarConfig);
@@ -135,6 +147,22 @@ function applyAvatarStyle(config) {
   body.material.color.set(OUTFIT_COLORS[config.outfit] || '#7dd3fc');
   head.material.color.set(SKIN_COLORS[config.skin] || '#f4d7b5');
   avatar.scale.setScalar(styleScale[config.style] || 1);
+
+  if (accessoryMesh) {
+    avatar.remove(accessoryMesh);
+    accessoryMesh = null;
+  }
+
+  const accessory = accessoryModels[config.accessory];
+  if (accessory) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(accessory.width, accessory.height, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0x111827 })
+    );
+    mesh.position.set(0, accessory.y, 0.42);
+    accessoryMesh = mesh;
+    avatar.add(mesh);
+  }
 
   switch (config.style) {
     case 'hero':
@@ -152,18 +180,76 @@ function applyAvatarStyle(config) {
   }
 }
 
-avatarForm.addEventListener('submit', (event) => {
+async function loadUserAvatarProfile() {
+  try {
+    const response = await fetch('/api/avatar');
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      return;
+    }
+
+    const profile = data.profile || {};
+    avatarConfig.skin = profile.avatar_skin || avatarConfig.skin;
+    avatarConfig.outfit = profile.avatar_outfit || avatarConfig.outfit;
+    avatarConfig.style = profile.avatar_style || avatarConfig.style;
+    avatarConfig.accessory = profile.avatar_accessory || avatarConfig.accessory;
+
+    skinToneSelect.value = avatarConfig.skin;
+    outfitColorSelect.value = avatarConfig.outfit;
+    avatarStyleSelect.value = avatarConfig.style;
+    avatarAccessorySelect.value = avatarConfig.accessory;
+
+    applyAvatarStyle(avatarConfig);
+    saveAvatarConfig();
+  } catch (error) {
+    console.warn('Unable to load avatar profile', error);
+  }
+}
+
+avatarForm.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   avatarConfig.skin = skinToneSelect.value;
   avatarConfig.outfit = outfitColorSelect.value;
   avatarConfig.style = avatarStyleSelect.value;
+  avatarConfig.accessory = avatarAccessorySelect.value;
 
   applyAvatarStyle(avatarConfig);
   saveAvatarConfig();
 
-  setAuthMessage('Avatar saved successfully');
+  try {
+    const response = await fetch('/api/avatar/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        avatar_skin: avatarConfig.skin,
+        avatar_outfit: avatarConfig.outfit,
+        avatar_style: avatarConfig.style,
+        avatar_accessory: avatarConfig.accessory
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to save avatar');
+    }
+
+    setAuthMessage('Avatar saved to profile');
+  } catch (error) {
+    setAuthMessage(error.message, true);
+  }
 });
+
+function renderPresence(players) {
+  presenceList.innerHTML = '';
+
+  players.forEach((playerData) => {
+    const li = document.createElement('li');
+    li.textContent = playerData.username || 'guest';
+    presenceList.appendChild(li);
+  });
+}
 
 function setWorldAppearance(world) {
   if (!world) return;
@@ -448,6 +534,7 @@ function setupSocket() {
       if (payload.type === 'state') {
         myPlayerId = payload.myId || myPlayerId;
         const players = (payload.players || []).filter((data) => Number(data.world_id) === Number(activeWorldId));
+        renderPresence(players);
         updateRemotePlayers(players);
       }
 
@@ -516,6 +603,7 @@ async function getCurrentUser() {
       logoutButton.classList.remove('hidden');
       worldPanel.classList.remove('hidden');
       statusText.textContent = `Welcome, ${data.user.username}`;
+      await loadUserAvatarProfile();
       setupSocket();
       await loadWorlds();
     }
@@ -567,6 +655,8 @@ loginForm.addEventListener('submit', async (event) => {
     worldPanel.classList.remove('hidden');
     statusText.textContent = `Welcome, ${data.user.username}`;
     setAuthMessage('Login successful');
+
+    await loadUserAvatarProfile();
 
     if (!socket) {
       setupSocket();
