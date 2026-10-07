@@ -26,10 +26,12 @@ let currentUser = null;
 let socket = null;
 let myPlayerId = null;
 let remoteAvatars = new Map();
+let botAvatars = new Map();
 let lastMovementSentAt = 0;
 let worldData = [];
 let activeWorldId = 1;
 let accessoryMesh = null;
+let botMessageCooldown = 0;
 
 const avatarConfig = {
   skin: 'light',
@@ -66,6 +68,14 @@ const accessoryModels = {
   hat: { width: 0.7, height: 0.22, y: 1.95 },
   visor: { width: 0.6, height: 0.12, y: 1.65 }
 };
+
+const botConfigs = [
+  { id: 'bot-1', username: 'Nova', world_id: 1, x: 8, z: -8, color: 0xfbbf24, seed: 1.2 },
+  { id: 'bot-2', username: 'Mira', world_id: 1, x: -10, z: 12, color: 0x7dd3fc, seed: 2.8 },
+  { id: 'bot-3', username: 'Cinder', world_id: 2, x: 18, z: 12, color: 0xf87171, seed: 3.4 },
+  { id: 'bot-4', username: 'Bloom', world_id: 3, x: -14, z: -14, color: 0x34d399, seed: 4.9 },
+  { id: 'bot-5', username: 'Kite', world_id: 4, x: 5, z: -18, color: 0xa78bfa, seed: 5.7 }
+];
 
 statusText.textContent = 'Initializing 3D world...';
 
@@ -245,6 +255,8 @@ function renderPresence(players) {
   presenceList.innerHTML = '';
 
   players.forEach((playerData) => {
+    if (playerData.isBot) return;
+
     const li = document.createElement('li');
     li.textContent = playerData.username || 'guest';
     presenceList.appendChild(li);
@@ -456,6 +468,59 @@ function createRemoteAvatar(id, username) {
   return group;
 }
 
+function createBotAvatar(bot) {
+  const group = new THREE.Group();
+
+  const bodyMesh = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.6, 1.4, 4, 8),
+    new THREE.MeshStandardMaterial({ color: bot.color || 0xfbbf24 })
+  );
+  group.add(bodyMesh);
+
+  const headMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.38, 24, 24),
+    new THREE.MeshStandardMaterial({ color: 0xf8fafc })
+  );
+  headMesh.position.y = 1.5;
+  group.add(headMesh);
+
+  group.position.set(bot.x || 0, 0, bot.z || 0);
+  group.userData = { botId: bot.id, username: bot.username, isBot: true };
+  scene.add(group);
+
+  botAvatars.set(bot.id, { ...bot, mesh: group });
+  return group;
+}
+
+function updateBotAvatars(delta) {
+  botMessageCooldown -= delta;
+
+  for (const bot of botAvatars.values()) {
+    const mesh = bot.mesh;
+    const wanderAngle = Math.sin((performance.now() * 0.001) + bot.seed) * 0.8;
+    const moveRadius = 1.6;
+
+    bot.x += Math.cos(wanderAngle) * 0.2;
+    bot.z += Math.sin(wanderAngle) * 0.2;
+
+    if (Math.abs(bot.x) > 18) bot.x *= -0.8;
+    if (Math.abs(bot.z) > 18) bot.z *= -0.8;
+
+    mesh.position.set(bot.x, 0, bot.z);
+    mesh.rotation.y = wanderAngle;
+    mesh.visible = Number(bot.world_id) === Number(activeWorldId);
+
+    const distX = bot.x - player.x;
+    const distZ = bot.z - player.z;
+    const distance = Math.hypot(distX, distZ);
+
+    if (distance < 3 && botMessageCooldown <= 0) {
+      addChatMessage(bot.username, 'Welcome to the world!');
+      botMessageCooldown = 8;
+    }
+  }
+}
+
 function updateRemotePlayers(players) {
   const activeIds = new Set();
 
@@ -560,6 +625,7 @@ function animate() {
 
   updateMovement(delta);
   updateCamera();
+  updateBotAvatars(delta);
   updateMultiplayerState();
   renderer.render(scene, camera);
 
@@ -763,6 +829,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+botConfigs.forEach(createBotAvatar);
 loadAvatarConfig();
 checkBackend();
 getCurrentUser();
