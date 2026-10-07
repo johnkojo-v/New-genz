@@ -1,0 +1,21 @@
+{
+  "name": "NewGenz Metaverse",
+  "short_name": "NewGenz",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "description": "A WebGL 3D metaverse platform starter app",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/0b1020/7dd3fc?text=NG",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://placehold.co/512x512/0b1020/a78bfa?text=NG",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

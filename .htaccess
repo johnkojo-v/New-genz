@@ -1,0 +1,7 @@
+RewriteEngine On
+
+RewriteRule ^api/(.*)$ backend/api.php [L,QSA]
+RewriteRule ^$ frontend/index.html [L]
+RewriteCond %{REQUEST_URI} !^/frontend/
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteRule ^(.*)$ frontend/$1 [L]

@@ -1,0 +1,9 @@
+{
+  "name": "new-genz-metaverse",
+  "description": "WebGL 3D metaverse starter with PHP backend and PWA support",
+  "type": "project",
+  "require": {
+    "php": ">=8.0",
+    "cboden/ratchet": "^0.4"
+  }
+}
