@@ -14,6 +14,10 @@ const chatForm = document.querySelector('#chatForm');
 const chatInput = document.querySelector('#chatInput');
 const worldPanel = document.querySelector('#worldPanel');
 const worldList = document.querySelector('#worldList');
+const avatarForm = document.querySelector('#avatarForm');
+const skinToneSelect = document.querySelector('#skinTone');
+const outfitColorSelect = document.querySelector('#outfitColor');
+const avatarStyleSelect = document.querySelector('#avatarStyle');
 
 let deferredPrompt = null;
 let currentUser = null;
@@ -23,6 +27,34 @@ let remoteAvatars = new Map();
 let lastMovementSentAt = 0;
 let worldData = [];
 let activeWorldId = 1;
+
+const avatarConfig = {
+  skin: 'light',
+  outfit: 'blue',
+  style: 'classic'
+};
+
+const SKIN_COLORS = {
+  light: '#f4d7b5',
+  tan: '#d9a066',
+  brown: '#8b5e3c',
+  dark: '#4a2d20'
+};
+
+const OUTFIT_COLORS = {
+  blue: '#7dd3fc',
+  purple: '#a78bfa',
+  green: '#34d399',
+  red: '#f87171',
+  gold: '#fbbf24'
+};
+
+const styleScale = {
+  classic: 1,
+  hero: 1.12,
+  street: 0.94,
+  royal: 1.08
+};
 
 statusText.textContent = 'Initializing 3D world...';
 
@@ -67,7 +99,7 @@ avatar.add(body);
 
 const head = new THREE.Mesh(
   new THREE.SphereGeometry(0.38, 24, 24),
-  new THREE.MeshStandardMaterial({ color: 0xf8fafc })
+  new THREE.MeshStandardMaterial({ color: 0xf4d7b5 })
 );
 head.position.y = 1.5;
 avatar.add(head);
@@ -75,6 +107,63 @@ scene.add(avatar);
 
 const clock = new THREE.Clock();
 const keys = {};
+
+function loadAvatarConfig() {
+  const saved = localStorage.getItem('newgenz-avatar');
+  if (!saved) {
+    applyAvatarStyle(avatarConfig);
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(saved);
+    Object.assign(avatarConfig, parsed);
+    skinToneSelect.value = avatarConfig.skin;
+    outfitColorSelect.value = avatarConfig.outfit;
+    avatarStyleSelect.value = avatarConfig.style;
+    applyAvatarStyle(avatarConfig);
+  } catch (error) {
+    applyAvatarStyle(avatarConfig);
+  }
+}
+
+function saveAvatarConfig() {
+  localStorage.setItem('newgenz-avatar', JSON.stringify(avatarConfig));
+}
+
+function applyAvatarStyle(config) {
+  body.material.color.set(OUTFIT_COLORS[config.outfit] || '#7dd3fc');
+  head.material.color.set(SKIN_COLORS[config.skin] || '#f4d7b5');
+  avatar.scale.setScalar(styleScale[config.style] || 1);
+
+  switch (config.style) {
+    case 'hero':
+      body.scale.set(1.08, 1.1, 1.08);
+      break;
+    case 'street':
+      body.scale.set(0.96, 0.94, 1);
+      break;
+    case 'royal':
+      body.scale.set(1.04, 1.12, 1.04);
+      break;
+    default:
+      body.scale.set(1, 1, 1);
+      break;
+  }
+}
+
+avatarForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  avatarConfig.skin = skinToneSelect.value;
+  avatarConfig.outfit = outfitColorSelect.value;
+  avatarConfig.style = avatarStyleSelect.value;
+
+  applyAvatarStyle(avatarConfig);
+  saveAvatarConfig();
+
+  setAuthMessage('Avatar saved successfully');
+});
 
 function setWorldAppearance(world) {
   if (!world) return;
@@ -584,6 +673,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+loadAvatarConfig();
 checkBackend();
 getCurrentUser();
 loadWorlds();

@@ -123,7 +123,8 @@ button:last-child {
   gap: 12px;
 }
 
-.authForm input {
+.authForm input,
+#avatarForm select {
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.12);
@@ -175,7 +176,8 @@ button:last-child {
   backdrop-filter: blur(8px);
 }
 
-#worldPanel h3 {
+#worldPanel h3,
+#avatarPanel h3 {
   margin: 0 0 10px;
   font-size: 1rem;
 }
@@ -193,6 +195,33 @@ button:last-child {
 .world-button.active {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   color: #0b1020;
+}
+
+#avatarPanel {
+  position: absolute;
+  right: 20px;
+  top: 220px;
+  z-index: 12;
+  width: 260px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(8px);
+}
+
+#avatarForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#avatarForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.83rem;
+  color: var(--text);
 }
 
 #chatPanel {
@@ -253,6 +282,14 @@ button:last-child {
     left: 12px;
     width: auto;
     bottom: 220px;
+  }
+
+  #avatarPanel {
+    right: 12px;
+    left: 12px;
+    top: auto;
+    bottom: 110px;
+    width: auto;
   }
 
   #controlsHint {
